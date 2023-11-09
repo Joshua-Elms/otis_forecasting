@@ -16,6 +16,7 @@ def process_fcn_output():
     which_data = "6t" # options are 6t or 16t, determines number of forecasted timestamps per ic
     lat_path_str = "/N/u/jmelms/BigRed200/FCN_Otis/latitude.npy"
     lon_path_str = "/N/u/jmelms/BigRed200/FCN_Otis/longitude.npy"
+    stats_dir_str = "/N/slate/jmelms/FourCastNetData/stats_v0/"
 
     ## Temporal ##
 
@@ -58,6 +59,8 @@ def process_fcn_output():
     output_data_dir = Path(output_data_dir_str)
     lat_path = Path(lat_path_str)
     lon_path = Path(lon_path_str)
+    global_means_path = Path(stats_dir_str) / "global_means.npy"
+    global_stds_path = Path(stats_dir_str) / "global_stds.npy"
 
     ############## END CONFIG ##############
 
@@ -95,6 +98,16 @@ def process_fcn_output():
     pred = pred.assign_coords(lat=lat_arr)
     pred = pred.assign_coords(lon=lon_arr)
     pred = pred.assign_coords(channel=channels)
+    
+    ## De-Normalizing
+    # 
+    # Forecasts are for $\frac{x - \mu}{\sigma}$ applied, so I will undo that.
+    
+    means = np.load(global_means_path).squeeze()[:len(channels)].reshape(1, 1, len(channels), 1, 1)
+    stds = np.load(global_stds_path).squeeze()[:len(channels)].reshape(1, 1, len(channels), 1, 1)
+    pred = (pred * stds) + means
+    # test to check whether values are reasonable: mslp @ bloomington IN in october around 1021 hPa? Seems legit.
+    # pred.sel(ic=0, t=0, channel="mslp", lat=slice(45, 35), lon=slice(270, 280)).values
     
     ds.close()
     
