@@ -6,6 +6,7 @@ If they do not, it will apply that formatting.
 
 import xarray as xr
 import os
+from time import perf_counter
 
 def main(
     input_file, 
@@ -44,32 +45,40 @@ def main(
     if rewrite: 
         stem = os.path.splitext(input_file)[0] # Split into stem and extension
         ext = os.path.splitext(input_file)[1]
-        # if output_file:
-        #     output_stem = os.path.splitext(output_file)[0]
+        if output_file:
+            output_stem = os.path.splitext(output_file)[0]
             
         if not output_file:
             output_stem = stem
-            tmp_file = output_stem + ".tmp"
             output_file = output_stem + ".nc" # switch to .nc extension to use xr.to_netcdf
             
+        tmp_file = output_stem + ".tmp"
+            
         try:
+            print("Writing to tmp file: ", end="")
+            start = perf_counter()
             ds.to_netcdf(tmp_file)
+            stop = perf_counter()
+            print(f"{stop - start:.1f}s")
             
         except Exception as e:
             print(f"Error writing to {tmp_file}: {e}")
             return
         
-        breakpoint()
         os.remove(input_file)
+        print(f"Writing to output file: ", end="")
+        start = perf_counter()
         os.replace(tmp_file, output_file)
+        stop = perf_counter()
+        print(f"{stop - start:.1f}s\n")
         
         print(f"Dataset at {input_file} written to {output_file}")
         
     
 if __name__=="__main__":
     main(
-        input_file = "/N/slate/jmelms/FCN_output/otis16t/autoregressive_predictions_z500_vis.nc",
-        # output_file = "/N/slate/jmelms/FCN_output/otis6t/autoregressive_predictions_z500_vis.nc", # If None, will overwrite input file
-        rewrite = False, # Write reformatted dataset to output_file
+        input_file = "/N/slate/jmelms/FCN_output/otis21t/autoregressive_predictions_z500_vis.h5",
+        output_file = "/N/slate/jmelms/FCN_output/otis21t/autoregressive_predictions_z500_vis.nc", # If None, will overwrite input file
+        rewrite = True, # Write reformatted dataset to output_file
         display = True, # Display dataset after reformatting
     )

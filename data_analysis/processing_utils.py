@@ -13,7 +13,7 @@ def process_fcn_output():
 
     input_data_dir_str = "/N/slate/jmelms/FCN_output" # path to forecasts
     output_data_dir_str = "N/slate/jmelms/otis_analysis" # path to desired output location
-    which_data = "6t" # options are 6t or 16t, determines number of forecasted timestamps per ic
+    which_data = "21t" # options are 6t, 16t, or 21t, determines number of forecasted timestamps per ic
     lat_path_str = "/N/u/jmelms/BigRed200/FCN_Otis/latitude.npy"
     lon_path_str = "/N/u/jmelms/BigRed200/FCN_Otis/longitude.npy"
     stats_dir_str = "/N/slate/jmelms/FourCastNetData/stats_v0/"
@@ -24,7 +24,7 @@ def process_fcn_output():
     init_time = dict( 
         year=2023,
         month=10,
-        day=15,
+        day=18,
         hour=0,
     )
     timestep_hours = 6 # 
@@ -52,6 +52,8 @@ def process_fcn_output():
     'r850',
     'tcwv'
     ])
+    sub = [0, 1, 2, 4]
+    channels = channels[sub]
 
     ## Don't Touch
 
@@ -67,7 +69,7 @@ def process_fcn_output():
     # ## Reading Data
 
     ds = xr.open_dataset(input_data)
-    pred = ds["predicted"]
+    pred = ds["predicted"].isel(channel=sub)
 
     # ## Creating a Temporal Array for Reference
     # 
@@ -103,8 +105,11 @@ def process_fcn_output():
     # 
     # Forecasts are for $\frac{x - \mu}{\sigma}$ applied, so I will undo that.
     
-    means = np.load(global_means_path).squeeze()[:len(channels)].reshape(1, 1, len(channels), 1, 1)
-    stds = np.load(global_stds_path).squeeze()[:len(channels)].reshape(1, 1, len(channels), 1, 1)
+    # means = np.load(global_means_path).squeeze()[:len(channels)].reshape(1, 1, len(channels), 1, 1) # these are normal, i've used the ones below for subsetting data
+    # stds = np.load(global_stds_path).squeeze()[:len(channels)].reshape(1, 1, len(channels), 1, 1)
+    
+    means = np.load(global_means_path).squeeze()[sub].reshape(1, 1, len(channels), 1, 1)
+    stds = np.load(global_stds_path).squeeze()[sub].reshape(1, 1, len(channels), 1, 1)
     pred = (pred * stds) + means
     # test to check whether values are reasonable: mslp @ bloomington IN in october around 1021 hPa? Seems legit.
     # pred.sel(ic=0, t=0, channel="mslp", lat=slice(45, 35), lon=slice(270, 280)).values
